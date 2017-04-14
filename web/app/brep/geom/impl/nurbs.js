@@ -41,6 +41,19 @@ export class NurbsCurve {
       }
     }
   }
+
+  approximateU(resolution, paramFrom, paramTo, consumer) {
+    let u = paramFrom;
+    let endU = paramTo;
+    let step = this.verb.paramAtLength(resolution);
+    if (u > endU) {
+      step *= -1;
+    }
+    u += step;
+    for (;step > 0 ? u < endU : u > endU; u += step) {
+      consumer(u);
+    }
+  }
 }
 
 export class NurbsSurface {
