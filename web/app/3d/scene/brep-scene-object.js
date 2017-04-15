@@ -149,7 +149,7 @@ export function triangulateToThree(shell, geom) {
         }
         //view.setFaceColor(sceneFace, utils.isSmoothPiece(group.shared) ? 0xFF0000 : null);
       }
-    } else if (brepFace.surface.constructor.name == 'NurbsSurface') {
+    } else if (brepFace.surface.constructor.name == 'NurbsSurface1') {
       const off = geom.vertices.length;
       const contours = [];
       
@@ -173,7 +173,7 @@ export function triangulateToThree(shell, geom) {
           addFace(face);
         }
       }
-    } else if (brepFace.surface.constructor.name == 'NurbsSurface2') {
+    } else if (brepFace.surface.constructor.name == 'NurbsSurface') {
       const off = geom.vertices.length;
       const tess = brepFace.surface.verb.tessellate({maxDepth: 3});
       tess.points.forEach(p => geom.vertices.push(new THREE.Vector3().fromArray(p))); 
