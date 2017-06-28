@@ -10,6 +10,7 @@ import Vector from '../../math/vector';
 import * as math from '../../math/math';
 
 export const TOLERANCE = 1e-8;
+export const SURFACE_INTERSECT_TOLERANCE = 1e-6;
 export const TOLERANCE_SQ = TOLERANCE * TOLERANCE;
 export const TOLERANCE_HALF = TOLERANCE * 0.5;
 
@@ -761,25 +762,27 @@ function intersectFaces(shell1, shell2, inverseCrossEdgeDirection) {
       if (face1.data[MY].overlaps.has(face2)) {
         continue;
       }
-      const curve = face1.surface.intersect(face2.surface);
+      const curves = face1.surface.intersect(face2.surface, SURFACE_INTERSECT_TOLERANCE);
   
-      const nodes = [];
-      collectNodesOfIntersectionOfFace(face2, face1, nodes);
-      collectNodesOfIntersectionOfFace(face1, face2, nodes);
-      
-      const newEdges = [];
-      const direction = face1.surface.normal.cross(face2.surface.normal);
-      if (inverseCrossEdgeDirection) {
-        direction._multiply(-1);
+      for (let curve of curves) {
+        const nodes = [];
+        collectNodesOfIntersectionOfFace(face2, face1, nodes);
+        collectNodesOfIntersectionOfFace(face1, face2, nodes);
+        
+        const newEdges = [];
+        const direction = face1.surface.normal.cross(face2.surface.normal);
+        if (inverseCrossEdgeDirection) {
+          direction._multiply(-1);
+        }
+        calculateNodeNormals(nodes, curve);
+        filterNodes(nodes);
+        split(nodes, newEdges, curve, direction);
+  
+        newEdges.forEach(e => {
+          addNewEdge(face1, e.halfEdge1);
+          addNewEdge(face2, e.halfEdge2);
+        });
       }
-      calculateNodeNormals(nodes, curve);
-      filterNodes(nodes);
-      split(nodes, newEdges, curve, direction);
-
-      newEdges.forEach(e => {
-        addNewEdge(face1, e.halfEdge1);
-        addNewEdge(face2, e.halfEdge2);
-      });
     }
   }
 }
@@ -1009,12 +1012,16 @@ function intersectFaceWithEdge(face, edge, result) {
   const ab = edge.vertexB.point.minus(p0);
   const length = ab.length();
   const v = ab._multiply(1 / length);
+
+  const classification = face.surface.classifyCurve(edge.edge.curve);
   
-  if (math.areEqual(edge.edge.curve.v.dot(face.surface.normal), 0, TOLERANCE)) {
-    if (math.areEqual(face.surface.normal.dot(edge.vertexA.point), face.surface.w, TOLERANCE)) {
-      classifyAndAdd(edge.vertexA.point, true, false);
-      classifyAndAdd(edge.vertexB.point, false, true);
-    }
+  if (!classification.hit) {
+    return;
+  }
+  
+  if (classification.parallel) { 
+    classifyAndAdd(edge.vertexA.point, true, false);
+    classifyAndAdd(edge.vertexB.point, false, true);
   } else {
 
     let pointOfIntersection = edge.edge.curve.pointOfSurfaceIntersection(face.surface);

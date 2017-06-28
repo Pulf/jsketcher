@@ -12,6 +12,10 @@ export class Plane extends Surface {
     this.w = w;
   }
 
+  isCognateCurve(curve) {
+    return curve.constructor.name == 'Line';
+  }
+
   calculateBasis() {
     return BasisForPlane(this.normal);
   }
@@ -22,12 +26,9 @@ export class Plane extends Surface {
     }
     return this._basis;
   }
-  
-  intersect(other) {
-    if (other.isPlane) {
-      return new Line.fromTwoPlanesIntersection(this, other);
-    }
-    return super.intersect();
+
+  intersectForSameClass(other) {
+    return [new Line.fromTwoPlanesIntersection(this, other)];
   }
 
   translate(vector) {
@@ -84,6 +85,15 @@ export class Plane extends Surface {
   
   domainV() {
     return [Number.MIN_VALUE, Number.MAX_VALUE];
+  }
+
+  classifyCognateCurve(line, tol) {
+    const parallel = math.areEqual(line.v.dot(this.normal), 0, tol);
+    const pointOnPlane = math.areEqual(this.normal.dot(line.p0), this.w, tol);
+    return {
+      hit: !parallel || pointOnPlane,
+      parallel
+    }
   }
 }
 
